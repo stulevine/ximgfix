@@ -1,0 +1,59 @@
+#!/usr/bin/perl
+
+use Cwd;
+use Image::ExifTool qw(:Public);
+use HTTP::Date;
+use Tie::File::AsHash;
+
+tie %fhash, 'Tie::File::AsHash', '.filemods', split => ':'
+        or die "Problem tying hash: $!";
+
+my $dir = getcwd;
+
+opendir(SD, $dir) || die("Can't open directory $!");
+
+my @files = grep {/\.(jpg|raf)$/i} readdir(SD);
+my $fcount = 0;
+
+print "Updating:";
+
+foreach my $file (sort {$b cmp $a} @files)
+{
+	if ($fhash{$file}) {
+		next;
+	}
+	else {
+		$fhash{$file} = 1;
+	}
+
+	@stat = stat($file);
+	my $statdate = HTTP::Date::time2iso($stat[9]);
+	my $smodTime = formatString($statdate);
+
+	my $info = ImageInfo($file);
+	my $modTime = formatString($info->{'CreateDate'});
+
+	next if($modTime eq $smodTime);
+
+	`/usr/bin/touch -t $modTime $file`;
+	print ".";
+	$fcount++;
+}
+
+print "\nDone. $fcount files processed.\n";
+
+untie %fhash;
+
+exit;
+
+sub formatString($)
+{
+	my ($cdate) = @_;
+
+	$cdate =~ s/\-/\:/g;
+	my ($date,$time) = split(/\ /, $cdate);
+	my @date = split(/\:/, $date);
+	my @time = split(/\:/, $time);
+	return "$date[0]$date[1]$date[2]$time[0]$time[1].$time[2]";
+}
+

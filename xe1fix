@@ -1,9 +1,86 @@
 #!/usr/bin/perl
 
+###############
+# Author: Stu Levine
+# Date: 2014-01-12
+# Purpose:
+#  A script to allow Fuji X camera users who utilize SDXC cards 64GB and >
+#  to adjust the file system create date of the file under Mac OS X.  This
+#  is a know bug without resolution at this time.  I wrote this script to
+#  allow me, as an X-E1 and X-E2 user, to have the correct create date of
+#  my images show properly in the Mac OS X finder.
+#
+#########
+# Instructions on use:
+#
+#  To use this script, insert your SD card into the Mac, and open a terminal window
+#  change to the directory where you download this script using cd <dir>
+#  At the command line type:
+#
+#    ./ximgfix <sd card volume name> [<optional folder number>]
+#
+#  Folder number is an integer greater than or equal to 100
+#
+#  In the DCIM directory there could be several folders of the form "nnn_FUJI"
+#  On my 64GB card, I have "100_FUJI" and "101_FUJI".  By default the script will
+#  process only the latest folder of images, in this case "101_FUJI". That is unless
+#  you pass in a folder number (let's say you did not have this script to adjust the
+#  create time of the files and want to run it on the older folder, in this case
+#  "100_FUJI", you can do so by passing in the folder number after the volume name
+#
+#  For example, and on my SD card names X-E2, you would run the script as follows:
+#
+#    ./ximgfix X-E2 100
+#
+#  You'll see some feed back and a string of periods.  One period for each file processed.
+#  If this is the first time you have run the script and have a 1000 images in the
+#  image folder, it will take some time to process.  But all the files will have the
+#  the correct time stamp after you run the script.
+#
+#  Enjoy!  And feel free to pass this on to other Fuji X camera uses who have the
+#  same issue.
+#
+###############
+
 use Cwd;
 use Image::ExifTool qw(:Public);
 use HTTP::Date;
 use Tie::File::AsHash;
+
+$pdir = getcwd;
+
+# allow the user to pass in the volume name
+
+$vol_name = $ARGV[0] || 'X-E2';
+
+# allow the user to overide the folder number
+
+my $fnumber = $ARGV[1] || -1;
+
+$vol_path = "/Volumes/${vol_name}/DCIM";
+
+# next, unless the user passed in the folder number as the second arg
+# from above, we find the latest folder of images in DCIM.
+# folders of of the form "nnn_FUJI" where nnn = a number >= 100
+# Assume older folders (lesser) were already processed
+
+if ($fnumber == -1) {
+    opendir(DCIM, $vol_path) || die("Can't open main image directory $vol_path, $!");
+    my @dirs = grep {/\_FUJI$/} readdir(DCIM);
+
+    foreach(@dirs) {
+        $_ =~ s/\_FUJI//;
+        if ($_ > $fnumber) {
+            $fnumber = $_;
+        }
+    }
+}
+
+$wd = "${vol_path}/${fnumber}_FUJI";
+
+print "I'm processing images in: $wd\n";
+
+chdir($wd);
 
 tie %fhash, 'Tie::File::AsHash', '.filemods', split => ':'
         or die "Problem tying hash: $!";
@@ -43,6 +120,8 @@ foreach my $file (sort {$b cmp $a} @files)
 print "\nDone. $fcount files processed.\n";
 
 untie %fhash;
+
+chdir($pdir);
 
 exit;
 

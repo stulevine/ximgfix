@@ -9,7 +9,7 @@ With that said, and as an interim measure, I have created a short Perl script to
 
 The script is efficient in that it keeps track of the files already fixed on the SD card (setting the create date to the "date taken" from the EXIF info of the JPG files).  I run this script on the SD card just before I transfer the images to my computer and it handles both the JPG and RAF files on the card setting the proper create date.  The script also keeps a running record of what files it has modified in a file on the SD card called ".filemods".  In this way I can have several cards each with separate state information.  If you initialize the SD card, then the next time you shoot with it, mount it on your computer and run the script, a new file is created to keep track of the file mods.
 
-While the script is rather short and efficient, it does require the following Perl modules to be installed before the script will run successfully:
+While the script is rather short and efficient, it does require the following Perl modules to be installed before the script will run successfully (use 'perl -MCPAN -e shell' from the command line to install them):
 
   Cwd;
   Image::ExifTool
@@ -18,11 +18,14 @@ While the script is rather short and efficient, it does require the following Pe
 
 To install the script:
 
-  sudo cp xe1fix /usr/local/bin/xe1fix
+  sudo cp ximgfix /usr/local/bin/ximgfix
 
 To run the script
 
-  1) cd to your SD card directory where the files are located
-  2) xe1fix
+  ximgfix [SD Card Name] [folder number]
 
-You'll see a progression of "." chars as it processes the files and sets the proper create date followed by the number of files processed when the script finished.  That's it.
+For example, my SD card is names X-E2 and I have two folders in the DCIM directory, 100_FUJI and 101_FUJI.  Since I've already run this script for the former folder, and all new photos go into 101_FUJI,  I would run ximgfix as follows:
+
+  ximgfix X-E2 101
+
+You'll see a progression of "." chars as it processes the files and sets the proper create date from the image's embedded EXIF info followed by the number of files processed when the script finished.  That's it.
